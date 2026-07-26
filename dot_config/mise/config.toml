@@ -1,0 +1,5 @@
+[tools]
+lazygit = "latest"
+node = "lts"
+lazyssh = "latest"
+github-cli = "latest"

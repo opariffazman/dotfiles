@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# Installs the tool versions declared in ~/.config/mise/config.toml.
+#
+# Why this is a separate `after` script rather than a phase of
+# 00-install-packages.sh: that script is a `before` hook, so it runs before
+# chezmoi has laid down any files. On a fresh machine the mise config it would
+# need does not exist yet. This runs after, once the config is in place.
+#
+# The hash line below is load-bearing. `run_onchange_` re-runs a script when the
+# script's own contents change — so without it, adding a tool to config.toml
+# would never trigger an install. Interpolating the config's hash makes this
+# file change whenever the config does.
+#
+# mise config hash: {{ include "dot_config/mise/config.toml" | sha256sum }}
+#
+# Idempotent: mise skips anything already present at the requested version.
+
+set -euo pipefail
+
+c_hd=$'\033[1;38;5;39m'; c_warn=$'\033[38;5;178m'; c_rst=$'\033[0m'
+CONFIG="$HOME/.config/mise/config.toml"
+
+if ! command -v mise >/dev/null 2>&1; then
+  # Not fatal: the brew phase of 00-install-packages.sh installs mise, and a
+  # machine part-way through bootstrap should still finish applying dotfiles.
+  printf '    %s!%s mise not on PATH — skipping tool install\n' "$c_warn" "$c_rst" >&2
+  exit 0
+fi
+
+if [ ! -f "$CONFIG" ]; then
+  printf '    %s!%s %s missing — nothing to install\n' "$c_warn" "$c_rst" "$CONFIG" >&2
+  exit 0
+fi
+
+printf '\n%s==> mise tools%s\n' "$c_hd" "$c_rst"
+mise install
+mise ls

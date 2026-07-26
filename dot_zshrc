@@ -125,10 +125,6 @@ export PATH="$HOME/.local/bin:$PATH"
 # Guarded: a machine that hasn't been bootstrapped yet still gets a working shell.
 [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
 
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-(( $+commands[pyenv] )) && eval "$(pyenv init - zsh)"
-
 alias ls='eza --icons'
 
 autoload -U compinit; compinit
@@ -136,9 +132,16 @@ autoload -U compinit; compinit
 # Show system info once per fresh SSH login (not on every nested/tmux shell).
 [[ -n "$SSH_CONNECTION" && $SHLVL -eq 1 ]] && command -v macchina >/dev/null && macchina
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# mise provides node and the CLI tools listed in ~/.config/mise/config.toml,
+# replacing nvm. Guarded so a machine that hasn't been bootstrapped still gets a
+# working shell. Shims go on PATH first so child processes that never source this
+# file (chezmoi scripts, editors launched from here) still resolve the tools;
+# `activate` then prepends the real paths for this shell, which is what gives
+# [env] vars and hooks that shims alone cannot.
+if (( $+commands[mise] )); then
+  eval "$(mise activate zsh --shims)"
+  eval "$(mise activate zsh)"
+fi
 
 # Land in a persistent tmux session on SSH login, so a dropped mobile connection
 # never kills work in progress. -d detaches other clients as we attach, which
@@ -147,3 +150,7 @@ export NVM_DIR="$HOME/.nvm"
 if [[ -o interactive && -n "$SSH_CONNECTION" && -z "$TMUX" ]]; then
   tmux attach -d -t main 2>/dev/null || tmux new-session -s main
 fi
+
+# Composio CLI
+export COMPOSIO_INSTALL_DIR="$HOME/.composio"
+[[ -d $COMPOSIO_INSTALL_DIR ]] && export PATH="$COMPOSIO_INSTALL_DIR:$PATH"
