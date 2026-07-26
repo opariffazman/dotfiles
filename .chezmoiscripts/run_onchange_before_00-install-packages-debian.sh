@@ -27,13 +27,17 @@ APT_CORE=(
   build-essential ca-certificates curl git gnupg unzip
   zsh tmux util-linux-extra          # util-linux-extra provides `script`, needed by omz
   jq xclip
-  python3-dev libffi-dev             # pyenv build deps
+  python3-dev libffi-dev             # build deps, if mise ever compiles python
   bubblewrap                         # claude-code sandboxing
 )
 # Not present on every Ubuntu release — installed individually, never fatal.
-APT_OPTIONAL=(eza fzf fd-find ripgrep lazygit ffmpeg)
+# lazygit is deliberately absent: mise ships a far newer build than apt does.
+APT_OPTIONAL=(eza fzf fd-find ripgrep ffmpeg)
 
-BREW_FORMULAE=(chezmoi gh pyenv tfenv tgenv)
+# Kept minimal on purpose. chezmoi bootstraps itself (so it cannot come from
+# mise), and mise then provides every other CLI tool — see dot_config/mise.
+# Formerly also gh/pyenv/tfenv/tgenv, all now mise-managed.
+BREW_FORMULAE=(chezmoi mise)
 
 OMZ_PLUGINS=(
   "https://github.com/zsh-users/zsh-autosuggestions plugins/zsh-autosuggestions"
@@ -335,6 +339,8 @@ $(printf '%s' "$c_hd")Remaining manual steps$(printf '%s' "$c_rst")
   1. gpg --full-generate-key                     # then re-run: $0 git
      gpg --armor --export <FPR> | xclip -selection clipboard   # add to GitHub
   2. gh auth login                               # + ssh -T git@github.com
+     (gh arrives via mise, installed by run_onchange_after_10-mise-tools.sh,
+      which runs after this script — so it exists by the time you read this)
   3. Set your terminal font to "MesloLGS NF"
   4. Log out/in once  (zsh login shell + docker group)
 EOF

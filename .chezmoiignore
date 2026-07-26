@@ -1,0 +1,31 @@
+{{/*
+  Selects which bootstrap script applies to this machine.
+
+  IMPORTANT: patterns match the TARGET path, not the source filename. chezmoi
+  strips the `run_onchange_before_` prefix before matching, so writing the
+  source name here matches nothing and BOTH scripts run — silently.
+
+  Family is derived from id + idLike so derivatives work without edits:
+    ubuntu   id=ubuntu   idLike=debian
+    cachyos  id=cachyos  idLike=arch
+    debian   id=debian   (no idLike)
+    arch     id=arch     (no idLike)
+
+  An unrecognised distro ignores both scripts rather than running the wrong
+  one — dotfiles still apply, provisioning is just left to you.
+*/}}
+{{- $id   := .chezmoi.osRelease.id     | default "" -}}
+{{- $like := .chezmoi.osRelease.idLike | default "" -}}
+{{- $family := "unknown" -}}
+{{- if or (eq $id "debian") (eq $id "ubuntu") (contains "debian" $like) (contains "ubuntu" $like) -}}
+{{-   $family = "debian" -}}
+{{- else if or (eq $id "arch") (contains "arch" $like) -}}
+{{-   $family = "arch" -}}
+{{- end -}}
+
+{{ if ne $family "debian" -}}
+.chezmoiscripts/00-install-packages-debian.sh
+{{ end -}}
+{{ if ne $family "arch" -}}
+.chezmoiscripts/00-install-packages-arch.sh
+{{ end -}}
