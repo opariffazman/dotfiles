@@ -76,6 +76,11 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # FZF_BASE is deliberately unset: the omz fzf plugin auto-detects both the
 # Debian layout (/usr/share/doc/fzf/examples) and a brew install.
 
+# NOTE: DISABLE_FZF_AUTO_COMPLETION is deliberately NOT set here -- it does
+# nothing on fzf >= 0.48. The plugin's fzf_setup_using_fzf() branch wins first
+# and runs `eval "$(fzf --zsh)"`, which emits key-bindings AND completion in one
+# blob and never consults that flag. Tab is unbound from fzf further down.
+
 # Which plugins would you like to load?
 # Standard plugins can be found in $ZSH/plugins/
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
@@ -121,13 +126,34 @@ source $ZSH/oh-my-zsh.sh
 export PATH="$HOME/.local/bin:$PATH"
 [[ -d /opt/nvim-linux-x86_64/bin ]] && export PATH="$PATH:/opt/nvim-linux-x86_64/bin"
 [[ -d /usr/local/go/bin ]] && export PATH="$PATH:/usr/local/go/bin"
+# rustup already prepends this from ~/.cargo/env via ~/.zshenv, but that file is
+# not chezmoi-managed, so repeat it here to keep this dotfile self-sufficient.
+# Prepended (not appended) per rustup, so a system rustc can be overridden; the
+# ":$PATH:" test keeps it idempotent when ~/.cargo/env has already run.
+[[ -d $HOME/.cargo/bin && ":$PATH:" != *":$HOME/.cargo/bin:"* ]] && export PATH="$HOME/.cargo/bin:$PATH"
 
 # Guarded: a machine that hasn't been bootstrapped yet still gets a working shell.
 [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv zsh)"
 
+# `brew shellenv zsh` ends with `export FPATH`, which leaks fpath into every
+# child shell; oh-my-zsh then re-appends its ~11 dirs on top of the inherited
+# copy, so fpath grows with each nesting level (54 -> 65 -> 76 ...). That bites
+# here because we auto-attach tmux below, so real shells are always nested.
+# Drop the export attribute; fpath itself is untouched and stays correct.
+typeset +x FPATH
+
 alias ls='eza --icons'
 
-autoload -U compinit; compinit
+# No compinit here: oh-my-zsh.sh already runs it (with -d "$ZSH_COMPDUMP").
+# Calling it a second time wrote a rival ~/.zcompdump and roughly doubled startup.
+
+# Give Tab back to zsh. `fzf --zsh` (run by the omz fzf plugin) ends with
+# `bindkey '^I' fzf-completion`, routing every Tab through fzf's widget, which
+# only opens the picker on the ** trigger and otherwise delegates to a saved
+# fallback -- that hand-off was failing and just ringing the bell. Must come
+# after `source $ZSH/oh-my-zsh.sh`, since that is what installs the binding.
+# Ctrl-R / Ctrl-T / Alt-C are bound separately and are unaffected.
+bindkey '^I' expand-or-complete
 
 # Show system info once per fresh SSH login (not on every nested/tmux shell).
 [[ -n "$SSH_CONNECTION" && $SHLVL -eq 1 ]] && command -v macchina >/dev/null && macchina
