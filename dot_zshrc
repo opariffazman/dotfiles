@@ -180,3 +180,14 @@ fi
 # Composio CLI
 export COMPOSIO_INSTALL_DIR="$HOME/.composio"
 [[ -d $COMPOSIO_INSTALL_DIR ]] && export PATH="$COMPOSIO_INSTALL_DIR:$PATH"
+
+# opencode
+export PATH=/home/ariff/.opencode/bin:$PATH
+
+# bun completions
+[ -s "/home/ariff/.bun/_bun" ] && source "/home/ariff/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+export PATH="$HOME/.dotnet:$PATH"
