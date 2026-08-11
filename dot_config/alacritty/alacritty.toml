@@ -10,7 +10,7 @@ WINIT_X11_SCALE_FACTOR = "1.0"
 dimensions = { columns = 100, lines = 30 }
 dynamic_padding = true
 decorations = "Full"
-opacity = 0.95
+opacity = 0.9
 title = "Alacritty@CachyOS"
 class = { instance = "Alacritty", general = "Alacritty" }
 decorations_theme_variant = "Dark"
@@ -24,7 +24,7 @@ normal = { family = "monospace", style = "Regular" }
 bold = { family = "monospace", style = "Bold" }
 italic = { family = "monospace", style = "Italic" }
 bold_italic = { family = "monospace", style = "Bold Italic" }
-size = 12.0
+size = 14.0
 
 [colors]
 draw_bold_text_with_bright_colors = true
