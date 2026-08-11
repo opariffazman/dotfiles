@@ -3,3 +3,6 @@ lazygit = "latest"
 node = "lts"
 lazyssh = "latest"
 github-cli = "latest"
+terraform = "latest"
+aws = { version = "latest", symlink_bins = "true" }
+vhs = "latest"
