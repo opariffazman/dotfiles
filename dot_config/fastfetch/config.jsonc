@@ -1,0 +1,95 @@
+// fastfetch — left-rail groups, per-category colors (catppuccin mocha)
+// test: fastfetch      reset: fastfetch -c none
+//
+// RAM spec row reads a cache (DMI needs root). Regenerate after a RAM swap:
+//   sudo fastfetch -c none --logo none --pipe --structure physicalmemory \
+//     | sed 's/.*: //' | sort | uniq -c \
+//     | sed -E 's/^ *([0-9]+) ([0-9.]+) GiB - (.*)$/\1×\2 GiB \3/' \
+//     | paste -sd'+' > ~/.cache/ram-spec
+//
+// Monitor row also reads a cache - live detection needs a Wayland/X11 output,
+// which an SSH/tmux/TTY shell has none of. Refresh from a desktop terminal:
+//   ff-monitor-cache
+//
+// palette: mauve 203;166;247 · peach 250;179;135 · red 243;139;168
+//          green 166;227;161 · sky 137;220;235 · dim 108;112;134 · subtext 166;173;200
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+
+  "logo": {
+    "type": "builtin",
+    "source": "cachyos_small",
+    "padding": { "top": 16, "left": 2, "right": 3 }
+  },
+
+  "display": {
+    "separator": "  ",
+    "color": { "title": "38;2;203;166;247" },
+    "percent": { "type": 3, "green": 50, "yellow": 80 },
+    "bar": {
+      "char": { "elapsed": "▰", "total": "▱" },
+      "border": { "left": "", "right": " " },
+      "width": 10
+    },
+    "size": { "binaryPrefix": "jedec", "ndigits": 1 }
+  },
+
+  "modules": [
+    { "type": "title", "keyColor": "38;2;203;166;247", "format": "{#38;2;203;166;247}{user-name}{#38;2;108;112;134}@{#38;2;137;220;235}{host-name}" },
+    "break",
+
+    // ── SYSTEM ── mauve
+    { "type": "custom", "format": "{#38;2;203;166;247}╭─ 󰣇 SYSTEM {#38;2;108;112;134}───────────────────" },
+    { "type": "os",       "key": "{#38;2;203;166;247}│ 󰣇 {#38;2;166;173;200}distro ",  "keyColor": "38;2;166;173;200", "outputColor": "38;2;203;166;247", "format": "{name} {arch}" },
+    { "type": "kernel",   "key": "{#38;2;203;166;247}│ 󰌽 {#38;2;166;173;200}kernel ",  "keyColor": "38;2;166;173;200", "outputColor": "38;2;203;166;247" },
+    { "type": "packages", "key": "{#38;2;203;166;247}│ 󰏖 {#38;2;166;173;200}pkgs   ",    "keyColor": "38;2;166;173;200", "outputColor": "38;2;203;166;247" },
+    { "type": "shell",    "key": "{#38;2;203;166;247}│ 󰆍 {#38;2;166;173;200}shell  ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;203;166;247" },
+    { "type": "terminal", "key": "{#38;2;203;166;247}│ 󰞷 {#38;2;166;173;200}term   ",    "keyColor": "38;2;166;173;200", "outputColor": "38;2;203;166;247" },
+    { "type": "uptime",   "key": "{#38;2;203;166;247}│ 󰅐 {#38;2;166;173;200}uptime ",  "keyColor": "38;2;166;173;200", "outputColor": "38;2;203;166;247" },
+
+    // ── DESKTOP ── peach
+    { "type": "custom", "format": "{#38;2;250;179;135}├─ 󰧨 DESKTOP {#38;2;108;112;134}──────────────────" },
+    { "type": "de",      "key": "{#38;2;250;179;135}│ 󰧨 {#38;2;166;173;200}de     ",     "keyColor": "38;2;166;173;200", "outputColor": "38;2;250;179;135" },
+    { "type": "wm",      "key": "{#38;2;250;179;135}│ 󰖯 {#38;2;166;173;200}wm     ",     "keyColor": "38;2;166;173;200", "outputColor": "38;2;250;179;135" },
+    { "type": "theme",   "key": "{#38;2;250;179;135}│ 󰉼 {#38;2;166;173;200}theme  ",  "keyColor": "38;2;166;173;200", "outputColor": "38;2;250;179;135", "format": "{theme1}" },
+    { "type": "icons",   "key": "{#38;2;250;179;135}│ 󰀻 {#38;2;166;173;200}icons  ",  "keyColor": "38;2;166;173;200", "outputColor": "38;2;250;179;135", "format": "{icons1}" },
+    { "type": "font",    "key": "{#38;2;250;179;135}│ 󰛖 {#38;2;166;173;200}font   ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;250;179;135", "format": "{font1}" },
+
+    // ── HARDWARE ── red
+    { "type": "custom", "format": "{#38;2;243;139;168}├─ 󰍛 HARDWARE {#38;2;108;112;134}─────────────────" },
+    { "type": "cpu",     "key": "{#38;2;243;139;168}│ 󰻠 {#38;2;166;173;200}cpu    ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "format": "{name} ({cores-logical}c) · {temperature}", "temp": true },
+    { "type": "gpu",     "key": "{#38;2;243;139;168}│ 󰢮 {#38;2;166;173;200}gpu    ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "format": "{name} · {temperature}", "temp": true, "driverSpecific": true },
+    { "type": "command", "key": "{#38;2;243;139;168}│ 󰑭 {#38;2;166;173;200}ram    ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "text": "cat ~/.cache/ram-spec 2>/dev/null" },
+    { "type": "command",   "key": "{#38;2;243;139;168}│ 󰚗 {#38;2;166;173;200}board  ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "text": "d=/sys/devices/virtual/dmi/id; printf '%s %s' \"$(cut -d' ' -f1 $d/board_vendor)\" \"$(cat $d/board_name)\"" },
+    { "type": "physicaldisk",  "key": "{#38;2;243;139;168}│ 󰋊 {#38;2;166;173;200}nvme   ",  "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "format": "{name} · {temperature}", "hideVirtual": true, "temp": true },
+
+    // ── RESOURCES ── green
+    { "type": "custom", "format": "{#38;2;166;227;161}├─ 󰓅 RESOURCES {#38;2;108;112;134}────────────────" },
+    { "type": "cpuusage", "key": "{#38;2;166;227;161}│ 󰾆 {#38;2;166;173;200}cpu    ",    "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161", "format": "{avg-bar} {avg} · peak {max} (core {max-index})" },
+    { "type": "command", "key": "{#38;2;166;227;161}│ 󰥔 {#38;2;166;173;200}clock  ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161", "text": "awk '{s+=$1; if($1>m)m=$1; n++} END{printf \"%.1f GHz avg \u00b7 %.1f GHz peak\", s/n/1e6, m/1e6}' /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq" },
+    { "type": "memory",   "key": "{#38;2;166;227;161}│ 󰍛 {#38;2;166;173;200}memory ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161" },
+    { "type": "swap",     "key": "{#38;2;166;227;161}│ 󰓡 {#38;2;166;173;200}swap   ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161" },
+    { "type": "gpu",      "key": "{#38;2;166;227;161}│ 󰢮 {#38;2;166;173;200}gpu    ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161", "format": "{core-usage-bar} {core-usage-num} @ {frequency}", "driverSpecific": true },
+    { "type": "gpu",      "key": "{#38;2;166;227;161}│ 󰢮 {#38;2;166;173;200}vram   ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161", "format": "{dedicated-percentage-bar} {dedicated-used} / {dedicated-total} ({dedicated-percentage-num})", "driverSpecific": true },
+    { "type": "disk",     "key": "{#38;2;166;227;161}│ 󰋊 {#38;2;166;173;200}root   ",   "keyColor": "38;2;166;173;200", "outputColor": "38;2;166;227;161", "folders": "/" },
+
+    // ── NETWORK ── sky
+    { "type": "custom", "format": "{#38;2;137;220;235}├─ 󰛳 NETWORK {#38;2;108;112;134}──────────────────" },
+    { "type": "localip",  "key": "{#38;2;137;220;235}│ 󰩟 {#38;2;166;173;200}lan    ",     "keyColor": "38;2;166;173;200", "outputColor": "38;2;137;220;235", "format": "{ipv4} ({ifname})" },
+    { "type": "publicip", "key": "{#38;2;137;220;235}│ 󰇧 {#38;2;166;173;200}wan    ",     "keyColor": "38;2;166;173;200", "outputColor": "38;2;137;220;235" },
+    { "type": "dns",      "key": "{#38;2;137;220;235}│ 󰇖 {#38;2;166;173;200}dns    ",     "keyColor": "38;2;166;173;200", "outputColor": "38;2;137;220;235" },
+    { "type": "weather",  "key": "{#38;2;137;220;235}│ 󰖐 {#38;2;166;173;200}weather", "keyColor": "38;2;166;173;200", "outputColor": "38;2;137;220;235", "outputFormat": "%C+%t+·+%h+rh+·+%w" },
+
+    // ── PERIPHERALS ── pink
+    { "type": "custom", "format": "{#38;2;243;139;168}├─ 󰌌 PERIPHERALS {#38;2;108;112;134}──────────────" },
+    { "type": "command", "key": "{#38;2;243;139;168}│ 󰌌 {#38;2;166;173;200}kbd    ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "text": "fastfetch -c none --logo none --pipe --structure mouse:keyboard 2>/dev/null | sed 's/^[^:]*: //' | awk 'NR==1{m=$0;next} $0!=m' | sed 's/ Keyboard$//' | paste -sd' \u00b7 '" },
+    { "type": "command", "key": "{#38;2;243;139;168}│ 󰍹 {#38;2;166;173;200}monitor", "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "text": "cat ~/.cache/monitor-spec 2>/dev/null" },
+    { "type": "mouse", "key": "{#38;2;243;139;168}│ 󰍽 {#38;2;166;173;200}mouse  ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "format": "{name}" },
+    { "type": "command", "key": "{#38;2;243;139;168}│ 󰕾 {#38;2;166;173;200}audio  ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "text": "fastfetch -c none --logo none --pipe --structure sound 2>/dev/null | sed -E 's/^[^:]*: //; s/High Definition Audio Controller //; s/ Digital Stereo//; s/ \\(([0-9]+%)\\)$/ \u00b7 \\1/' | paste -sd'+'" },
+    { "type": "bluetoothradio", "key": "{#38;2;243;139;168}│ 󰂯 {#38;2;166;173;200}bt     ", "keyColor": "38;2;166;173;200", "outputColor": "38;2;243;139;168", "format": "Bluetooth {version} ({vendor})" },
+
+    { "type": "custom", "format": "{#38;2;108;112;134}╰──────────────────────────────" },
+    "break",
+    { "type": "colors", "symbol": "circle", "paddingLeft": 3 }
+  ]
+}

@@ -1,0 +1,79 @@
+#!/bin/zsh
+# fastfetch, with the group frames closed into real boxes.
+#
+# fastfetch itself can't do this: module output is variable-length and there is
+# no pad-to-width option, so the right rail has to be added after rendering.
+# Two passes - measure the widest framed line, then pad every framed line to it.
+#
+# Rows longer than the box are truncated with an ellipsis rather than left
+# hanging past the rail, so the box always closes and every row keeps a
+# one-column gutter before the border.
+#
+# Width is measured on the ANSI-stripped text, so it stays correct through all
+# the {#rgb} colour codes in the config. Needs gawk for UTF-8 length().
+# Override the cap with FF_WIDTH (total line width, logo column included).
+#
+# --pipe false: fastfetch drops colour when its stdout is not a tty
+# /bin/zsh shebang: the shell module walks the process tree, so an
+# sh wrapper would make it report "sh" instead of your zsh
+cols=${COLUMNS:-$(tput cols 2>/dev/null || echo 0)}
+fastfetch --pipe false "$@" | gawk -v cols="$cols" -v maxw="${FF_WIDTH:-120}" '
+  { raw[NR] = $0 }
+
+  # visible width: drop CSI sequences, then count characters (not bytes)
+  function vis(s) { gsub(/\033\[[0-9;]*[A-Za-z]/, "", s); return length(s) }
+  function strip(s) { gsub(/\033\[[0-9;]*[A-Za-z]/, "", s); return s }
+  function rep(c, n,   s) { while (n-- > 0) s = s c; return s }
+
+  # truncate to n visible chars, copying colour escapes through uncounted
+  function trunc(s, n,   out, cnt) {
+    while (length(s) > 0) {
+      if (match(s, /^\033\[[0-9;]*[A-Za-z]/)) {
+        out = out substr(s, 1, RLENGTH); s = substr(s, RLENGTH + 1); continue
+      }
+      if (cnt >= n) return out "\033[m…"
+      out = out substr(s, 1, 1); s = substr(s, 2); cnt++
+    }
+    return out
+  }
+
+  # the colour escape immediately before the frame character on this line
+  function railcol(s,   c) {
+    if (match(s, /\033\[[0-9;]*m[│╭├╰]/)) c = substr(s, RSTART, RLENGTH - 1)
+    return c
+  }
+  # the last colour escape on the line - headers end in dim dashes
+  function lastcol(s,   c) {
+    while (match(s, /\033\[[0-9;]*m/)) {
+      c = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+    }
+    return c
+  }
+
+  END {
+    for (i = 1; i <= NR; i++)
+      if (strip(raw[i]) ~ /[│╭├╰]/) { w = vis(raw[i]); if (w > width) width = w }
+    width++                                             # gutter before the rail
+
+    if (width > maxw) width = maxw                      # user cap
+    if (cols > 0 && width > cols - 1) width = cols - 1  # never wider than the pane
+
+    for (i = 1; i <= NR; i++) {
+      line = raw[i]; s = strip(line)
+
+      if (s ~ /╭/)      cap = "╮"
+      else if (s ~ /├/) cap = "┤"
+      else if (s ~ /╰/) cap = "╯"
+      else              cap = ""
+
+      if (cap != "") {                            # header / footer: extend dashes
+        print line lastcol(line) rep("─", width - vis(line)) cap "\033[m"
+      } else if (s ~ /│/) {                       # content row
+        if (vis(line) >= width) line = trunc(line, width - 2)  # -2: room for … and gutter
+        printf "%s%*s%s│\033[m\n", line, width - vis(line), "", railcol(line)
+      } else {                                    # title, logo-only, swatches
+        print line
+      }
+    }
+  }
+'

@@ -1,0 +1,28 @@
+#!/bin/sh
+# Refresh the fastfetch monitor row.
+# Run from a terminal inside the desktop session while the display is awake.
+# fastfetch reads the resulting cache, so the row survives SSH/tmux/TTY sessions
+# where no Wayland or X11 output is reachable.
+ff() { fastfetch -c none --logo none --pipe --structure "$1" 2>/dev/null; }
+
+spec=$(ff monitor \
+  | sed -E 's/^Monitor \(([^)]*)\): ([0-9]+x[0-9]+) px @ ([0-9.]+) Hz.*\(([0-9.]+) inches, ([0-9.]+) ppi\)(.*)$/\1 · \2@\3Hz · \4" \5ppi\6/' \
+  | awk '{ while (match($0, /@[0-9]+\.[0-9]+Hz/)) {                       # 239.989 -> 240
+             n = substr($0, RSTART+1, RLENGTH-3)
+             $0 = substr($0, 1, RSTART) sprintf("%d", n+0.5) "Hz" substr($0, RSTART+RLENGTH)
+           } print }' \
+  | sed -e 's/\[HDR Compatible\]/· 󰙀 HDR/' -e 's/  */ /g' \
+  | paste -sd'+')
+
+if [ -z "$spec" ]; then
+  echo "no display detected - run this from a terminal in the desktop session" >&2
+  exit 1
+fi
+
+# `monitor` names the panel by its EDID PNP id (e.g. GSM9E8B). The human-readable
+# name lives in the DDC/CI descriptor, which only the `brightness` module reads.
+friendly=$(ff brightness | sed -nE '1s/^Brightness \(([^)]*)\).*/\1/p' | sed 's/+$//')
+[ -n "$friendly" ] && spec=$(printf '%s\n' "$spec" | sed "s/^[^ ]* /$friendly /")
+
+printf '%s\n' "$spec" > "${XDG_CACHE_HOME:-$HOME/.cache}/monitor-spec"
+printf '%s\n' "$spec"
