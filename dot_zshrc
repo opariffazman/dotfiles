@@ -86,7 +86,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git sudo zsh-autosuggestions fzf chezmoi aws)
+plugins=(git sudo zsh-autosuggestions fzf chezmoi aws zsh-syntax-highlighting)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -142,8 +142,6 @@ export PATH="$HOME/.local/bin:$PATH"
 # Drop the export attribute; fpath itself is untouched and stays correct.
 typeset +x FPATH
 
-alias ls='eza --icons'
-
 # No compinit here: oh-my-zsh.sh already runs it (with -d "$ZSH_COMPDUMP").
 # Calling it a second time wrote a rival ~/.zcompdump and roughly doubled startup.
 
@@ -191,3 +189,6 @@ export PATH=/home/ariff/.opencode/bin:$PATH
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH="$HOME/.dotnet:$PATH"
+
+unalias ls 2>/dev/null
+ls() { if [[ $1 == <-> ]]; then eza --icons -l --tree --level "$1" "${@:2}"; else eza --icons -l --tree --level 1 "$@"; fi }
