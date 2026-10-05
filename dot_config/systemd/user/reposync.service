@@ -1,0 +1,13 @@
+[Unit]
+Description=Fetch and fast-forward the ~/repo git clones
+Documentation=file://%h/.local/bin/reposync
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=REPOSYNC_QUIET=1
+ExecStart=%h/.local/bin/reposync sync
+# Background housekeeping must never compete with GPU or build work.
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=10min

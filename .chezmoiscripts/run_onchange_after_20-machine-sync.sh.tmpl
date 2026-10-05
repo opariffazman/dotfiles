@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# Cross-machine sync services: Syncthing for ~/Shared, reposync for ~/repo.
+#
+# A separate script rather than new entries in 00-install-packages: editing that
+# script re-runs it, and on Arch it begins with a full `pacman -Syu`. Adding two
+# small packages should not upgrade the whole system.
+#
+# Re-runs when either reposync unit changes:
+#   service {{ include "dot_config/systemd/user/reposync.service" | sha256sum }}
+#   timer   {{ include "dot_config/systemd/user/reposync.timer" | sha256sum }}
+
+set -euo pipefail
+
+missing=()
+for p in sshfs syncthing; do command -v "$p" >/dev/null 2>&1 || missing+=("$p"); done
+if [ ${#missing[@]} -gt 0 ]; then
+  if command -v pacman >/dev/null 2>&1; then
+    sudo pacman -S --needed --noconfirm "${missing[@]}"
+  elif command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get install -y "${missing[@]}"
+  else
+    echo "    ! install ${missing[*]} by hand" >&2
+  fi
+fi
+
+# Lingering keeps user services running with nobody logged in, which the mini PC
+# needs as a home server.
+[ "$(loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null)" = yes ] || sudo loginctl enable-linger "$(id -un)"
+
+systemctl --user daemon-reload
+systemctl --user enable --now syncthing.service reposync.timer

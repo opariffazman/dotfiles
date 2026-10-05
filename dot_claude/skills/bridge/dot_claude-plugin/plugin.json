@@ -1,0 +1,26 @@
+{
+  "name": "bridge",
+  "version": "0.1.0",
+  "description": "Firstmate Bridge: decisions, Lavish boards, parked work and PRs waiting on the captain, with alerts, in a side pane `/bridge` shows or hides",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "fmHome": {
+      "type": "string",
+      "title": "Firstmate home",
+      "description": "The firstmate operational home the feed reads",
+      "default": "/home/ariff/firstmate"
+    },
+    "refreshSeconds": {
+      "type": "number",
+      "title": "Refresh interval (seconds)",
+      "description": "How often the pane re-reads the fleet; 15 at least",
+      "default": 60
+    },
+    "boardWaitHours": {
+      "type": "number",
+      "title": "Board wait alert (hours)",
+      "description": "Alert when a board has waited on you longer than this",
+      "default": 4
+    }
+  }
+}

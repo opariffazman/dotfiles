@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+#
+# reposync - keep the ~/repo git clones in step across machines.
+#
+#   reposync [sync]        fetch every repo, fast-forward the safe ones, clone missing ones
+#   reposync status        one row per repo that needs attention (no network)
+#   reposync push          push every branch that is ahead of its upstream (never forced)
+#   reposync add <dir> [host,...|all]   list a repo in the manifest (default: all)
+#
+# Git, not file sync, moves the code: copying live .git directories between two
+# machines where agents write concurrently corrupts indexes and worktree paths.
+#
+# The manifest lives in the Syncthing-shared folder, not in this public dotfiles
+# repo, because it names private repositories. One repo per line:
+#
+#   <name> <clone-url> <all|host[,host...]>
+#
+# Safety rules, so a background run never loses work:
+#   - a repo with tracked changes, or mid merge/rebase, is fetched but never moved
+#   - only fast-forwards; a diverged branch is reported, never merged or rebased
+#   - push never forces, and never pushes a branch that has no upstream
+#
+# Env: REPOSYNC_ROOT (default ~/repo), REPOSYNC_MANIFEST
+#      (default ~/Shared/reposync/repos.txt), REPOSYNC_QUIET=1 prints only problems.
+
+set -uo pipefail
+
+ROOT="${REPOSYNC_ROOT:-$HOME/repo}"
+MANIFEST="${REPOSYNC_MANIFEST:-$HOME/Shared/reposync/repos.txt}"
+HOST="$(hostname -s)"
+QUIET="${REPOSYNC_QUIET:-0}"
+
+# A background run must fail instead of waiting on a prompt nobody will answer.
+export GIT_TERMINAL_PROMPT=0
+export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o BatchMode=yes -o ConnectTimeout=10}"
+
+say()  { [ "$QUIET" = 1 ] || printf '%s\n' "$*"; }
+warn() { printf '%s\n' "$*"; }
+die()  { printf 'reposync: %s\n' "$*" >&2; exit 1; }
+
+# Prints "name url" for every manifest entry that belongs on this host.
+entries_for_host() {
+  [ -f "$MANIFEST" ] || die "manifest not found: $MANIFEST (create it, or set REPOSYNC_MANIFEST)"
+  awk -v host="$HOST" '
+    /^[[:space:]]*(#|$)/ { next }
+    {
+      n = split($3, hosts, ",")
+      for (i = 1; i <= n; i++) if (hosts[i] == "all" || hosts[i] == host) { print $1, $2; next }
+    }' "$MANIFEST"
+}
+
+is_busy() {
+  local dir=$1 p
+  for p in MERGE_HEAD rebase-merge rebase-apply CHERRY_PICK_HEAD REVERT_HEAD; do
+    [ -e "$(git -C "$dir" rev-parse --git-path "$p")" ] && return 0
+  done
+  return 1
+}
+
+has_tracked_changes() {
+  ! git -C "$1" diff --quiet 2>/dev/null || ! git -C "$1" diff --cached --quiet 2>/dev/null
+}
+
+# Moves every local branch that is strictly behind its upstream. The checked-out
+# branch goes through merge --ff-only so the working tree follows; other branches
+# move through a local fetch, which git refuses for non-fast-forwards and for
+# branches checked out in another worktree.
+fast_forward() {
+  local name=$1 dir=$2 current br up behind ahead
+  current=$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+  while read -r br up; do
+    [ -n "$up" ] || continue
+    read -r behind ahead < <(git -C "$dir" rev-list --left-right --count "$up...$br" 2>/dev/null) || continue
+    [ "${behind:-0}" -gt 0 ] || continue
+    if [ "${ahead:-0}" -gt 0 ]; then
+      warn "$name: $br diverged from $up ($ahead ahead, $behind behind) - rebase by hand"
+      continue
+    fi
+    if [ "$br" = "$current" ]; then
+      if is_busy "$dir" || has_tracked_changes "$dir"; then
+        warn "$name: $br is $behind behind, left alone (uncommitted changes)"
+      elif git -C "$dir" merge --ff-only --quiet "$up" 2>/dev/null; then
+        say "$name: $br fast-forwarded $behind commit(s)"
+      else
+        warn "$name: $br fast-forward refused (untracked files in the way?)"
+      fi
+    elif git -C "$dir" fetch --quiet . "refs/remotes/$up:refs/heads/$br" 2>/dev/null; then
+      say "$name: $br fast-forwarded $behind commit(s)"
+    fi
+  done < <(git -C "$dir" for-each-ref --format='%(refname:short) %(upstream:short)' refs/heads)
+}
+
+cmd_sync() {
+  local lock="${XDG_RUNTIME_DIR:-/tmp}/reposync.lock"
+  exec 9>"$lock"
+  flock -n 9 || { say "another reposync is running"; return 0; }
+
+  local name url dir
+  while read -r name url; do
+    dir="$ROOT/$name"
+    if [ ! -e "$dir" ]; then
+      if git clone --quiet "$url" "$dir"; then say "$name: cloned"; else warn "$name: clone failed ($url)"; fi
+      continue
+    fi
+    if ! git -C "$dir" rev-parse --git-dir >/dev/null 2>&1; then
+      warn "$name: $dir exists but is not a git repo"
+      continue
+    fi
+    if ! git -C "$dir" fetch --all --prune --quiet 2>/dev/null; then
+      warn "$name: fetch failed"
+      continue
+    fi
+    fast_forward "$name" "$dir"
+  done < <(entries_for_host)
+}
+
+cmd_status() {
+  local listed dir name br dirty ahead behind up notes joined
+  listed=$(entries_for_host | awk '{print $1}')
+  printf '%-26s %-22s %s\n' REPO BRANCH STATE
+  for dir in "$ROOT"/*/; do
+    dir=${dir%/}; name=${dir##*/}
+    git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || { printf '%-26s %-22s %s\n' "$name" - "not a git repo"; continue; }
+    notes=()
+    br=$(git -C "$dir" symbolic-ref --quiet --short HEAD 2>/dev/null || echo detached)
+    dirty=$(git -C "$dir" status --porcelain 2>/dev/null | wc -l)
+    [ "$dirty" -gt 0 ] && notes+=("$dirty uncommitted")
+    is_busy "$dir" && notes+=("merge/rebase in progress")
+    if up=$(git -C "$dir" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null); then
+      read -r behind ahead < <(git -C "$dir" rev-list --left-right --count "$up...HEAD")
+      [ "$ahead" -gt 0 ] && notes+=("$ahead unpushed")
+      [ "$behind" -gt 0 ] && notes+=("$behind behind")
+    elif git -C "$dir" remote | grep -q .; then
+      notes+=("no upstream")
+    else
+      notes+=("no remote")
+    fi
+    grep -qxF "$name" <<<"$listed" || notes+=("not in manifest")
+    [ ${#notes[@]} -gt 0 ] || continue
+    joined=$(printf '%s, ' "${notes[@]}")
+    printf '%-26s %-22s %s\n' "$name" "$br" "${joined%, }"
+  done
+  while read -r name; do
+    [ -e "$ROOT/$name" ] || printf '%-26s %-22s %s\n' "$name" - "missing (run reposync to clone)"
+  done <<<"$listed"
+}
+
+cmd_push() {
+  local name url dir br up ahead behind
+  while read -r name url; do
+    dir="$ROOT/$name"
+    git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || continue
+    has_tracked_changes "$dir" && warn "$name: has uncommitted changes - commit them to a wip/$HOST/<topic> branch to carry them over"
+    while read -r br up; do
+      if [ -z "$up" ]; then
+        if [ "$(git -C "$dir" rev-list --count "$br" --not --remotes 2>/dev/null)" -gt 0 ]; then
+          warn "$name: $br has no upstream - push it with: git -C $dir push -u origin $br"
+        fi
+        continue
+      fi
+      read -r behind ahead < <(git -C "$dir" rev-list --left-right --count "$up...$br" 2>/dev/null) || continue
+      [ "${ahead:-0}" -gt 0 ] || continue
+      if [ "${behind:-0}" -gt 0 ]; then
+        warn "$name: $br diverged from $up - rebase by hand before pushing"
+      elif git -C "$dir" push --quiet "${up%%/*}" "$br:${up#*/}"; then
+        say "$name: pushed $br ($ahead commit(s))"
+      else
+        warn "$name: push of $br failed"
+      fi
+    done < <(git -C "$dir" for-each-ref --format='%(refname:short) %(upstream:short)' refs/heads)
+  done < <(entries_for_host)
+}
+
+cmd_add() {
+  local dir=${1:?usage: reposync add <dir> [host,...|all]} hosts=${2:-all} name url
+  dir=$(cd "$dir" && pwd) || die "no such directory: $1"
+  name=${dir##*/}
+  url=$(git -C "$dir" remote get-url origin 2>/dev/null) || die "$name has no origin remote"
+  mkdir -p "$(dirname "$MANIFEST")"
+  if awk -v n="$name" '$1 == n { found = 1 } END { exit !found }' "$MANIFEST" 2>/dev/null; then
+    die "$name is already in $MANIFEST"
+  fi
+  printf '%-26s %s %s\n' "$name" "$url" "$hosts" >>"$MANIFEST"
+  say "added $name ($hosts)"
+}
+
+case "${1:-sync}" in
+  sync)   cmd_sync ;;
+  status) cmd_status ;;
+  push)   cmd_push ;;
+  add)    shift; cmd_add "$@" ;;
+  -h|--help|help) sed -n '3,9p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) die "unknown command: $1 (try: reposync help)" ;;
+esac

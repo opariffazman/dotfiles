@@ -184,7 +184,10 @@
   # OS identifier color.
   typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=39
   # Custom icon. CachyOS reports ID=cachyos, which p10k doesn't map, so force the Arch glyph.
-  typeset -g POWERLEVEL9K_OS_ICON_CONTENT_EXPANSION=$''
+  # Other distros keep p10k's own detection, or Ubuntu would show the Arch logo.
+  if [[ -f /etc/arch-release ]]; then
+    typeset -g POWERLEVEL9K_OS_ICON_CONTENT_EXPANSION=$''
+  fi
 
   ################################[ prompt_char: prompt symbol ]################################
   # Green prompt symbol if the last command succeeded.
