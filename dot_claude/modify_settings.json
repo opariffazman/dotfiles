@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+# chezmoi modify script for ~/.claude/settings.json.
+#
+# Claude Code rewrites settings.json itself (plugins, /config, permission
+# prompts), and parts of it are machine-specific. Tracking the whole file would
+# overwrite those local edits on every `chezmoi apply`. This script instead
+# merges only the keys that must match on every machine into whatever file is
+# already there, so everything else stays local.
+#
+# Local on purpose (never set here):
+#   autoMode      names this machine's trusted repo and credential paths
+#   permissions.allow
+#                 allowlists reference this machine's scripts and CLIs
+#   env           holds this machine's host and IP addresses
+#   extraKnownMarketplaces
+#                 depends on what is registered locally
+#   enabledPlugins."clangd-lsp@claude-plugins-official"
+#                 needs the clangd binary, which only some machines install
+#
+# `*` merges objects recursively and replaces arrays, so modelSettings,
+# enabledPlugins and permissions gain shared entries without losing local ones,
+# and hooks stay identical everywhere.
+
+set -euo pipefail
+
+shared='{
+  "agentPushNotifEnabled": true,
+  "effortLevel": "high",
+  "enableArtifact": false,
+  "enabledPlugins": {
+    "claude-md-management@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": false
+  },
+  "hooks": {
+    "SessionStart": [
+      { "matcher": "", "hooks": [{ "type": "command", "command": "gh-axi", "timeout": 10 }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": "chrome-devtools-axi", "timeout": 10 }] },
+      { "matcher": "", "hooks": [{ "type": "command", "command": "lavish-axi", "timeout": 10 }] }
+    ]
+  },
+  "model": "sonnet",
+  "modelSettings": {
+    "claude-fable-5-1": { "effortLevel": "high" },
+    "claude-opus-5": { "effortLevel": "high" },
+    "claude-opus-5-5": { "effortLevel": "medium" },
+    "claude-sonnet-5": { "effortLevel": "high" },
+    "claude-sonnet-5-5": { "effortLevel": "medium" }
+  },
+  "permissions": { "defaultMode": "auto" },
+  "remoteControlAtStartup": false,
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "statusLine": { "type": "command", "command": "bash ~/.claude/statusline-command.sh" },
+  "theme": "dark",
+  "tui": "fullscreen",
+  "verbose": false,
+  "viewMode": "focus"
+}'
+
+current="$(cat)"
+[ -n "${current//[[:space:]]/}" ] || current='{}'
+
+jq --argjson shared "$shared" '. * $shared' <<<"$current"
