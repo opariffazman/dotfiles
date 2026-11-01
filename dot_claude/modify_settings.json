@@ -15,8 +15,6 @@
 #   env           holds this machine's host and IP addresses
 #   extraKnownMarketplaces
 #                 depends on what is registered locally
-#   enabledPlugins."clangd-lsp@claude-plugins-official"
-#                 needs the clangd binary, which only some machines install
 #
 # `*` merges objects recursively and replaces arrays, so modelSettings,
 # enabledPlugins and permissions gain shared entries without losing local ones,
@@ -29,6 +27,7 @@ shared='{
   "effortLevel": "high",
   "enableArtifact": false,
   "enabledPlugins": {
+    "clangd-lsp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,

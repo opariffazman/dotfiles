@@ -29,6 +29,7 @@ APT_CORE=(
   jq xclip
   python3-dev libffi-dev             # build deps, if mise ever compiles python
   bubblewrap                         # claude-code sandboxing
+  clangd                             # language server behind the clangd-lsp Claude plugin
 )
 # Not present on every Ubuntu release — installed individually, never fatal.
 # lazygit is deliberately absent: mise ships a far newer build than apt does.
