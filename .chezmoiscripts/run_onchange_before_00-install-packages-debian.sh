@@ -278,9 +278,8 @@ fi
 
 # ------------------------------------------------------- 9. vendor installers ---
 if want tools; then
-  phase "Claude Code / Hermes"
+  phase "Claude Code"
   if have claude; then skip "claude"; else run sh -c "curl -fsSL https://claude.ai/install.sh | bash" && ok "claude"; fi
-  if have hermes; then skip "hermes"; else run sh -c "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash" && ok "hermes"; fi
 fi
 
 # ------------------------------------------------------------ 10. desktop apps ---
