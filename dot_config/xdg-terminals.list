@@ -1,0 +1,3 @@
+# Read by xdg-terminal-exec, which gio uses to launch terminal apps such as the
+# cachy-update tray. Without it, gio picks the first terminal from its built-in list.
+Alacritty.desktop

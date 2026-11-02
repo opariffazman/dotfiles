@@ -43,6 +43,7 @@ PAC_CORE=(
   ttf-meslo-nerd                     # p10k's nerdfont-v3 glyphs
   avahi nss-mdns                     # .local resolution to the other machines
   bubblewrap                         # claude-code sandboxing
+  xdg-terminal-exec                  # makes cachy-update's tray launch the terminal in ~/.config/xdg-terminals.list
 )
 
 # Installed individually, never fatal. Arch names the binary `fd`, so the
@@ -243,9 +244,8 @@ fi
 
 # ------------------------------------------------------- 6. vendor installers ---
 if want tools; then
-  phase "Claude Code / Hermes"
+  phase "Claude Code"
   if have claude; then skip "claude"; else run sh -c "curl -fsSL https://claude.ai/install.sh | bash" && ok "claude"; fi
-  if have hermes; then skip "hermes"; else run sh -c "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash" && ok "hermes"; fi
 fi
 
 # ------------------------------------------------------------ 7. desktop apps ---
