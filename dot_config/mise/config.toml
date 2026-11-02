@@ -13,3 +13,4 @@ shellcheck = "latest"
 tflint = "latest"
 git-cliff = "latest"
 glow = "2.1.2"
+wrangler = { version = "4.156.1", allow_builds = ["esbuild", "sharp", "workerd"] }
