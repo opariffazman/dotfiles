@@ -88,8 +88,11 @@ ME=$(id -un)                                  # $USER isn't set when chezmoi run
 WORKDIR=$(mktemp -d)
 trap 'rm -rf "$WORKDIR"' EXIT
 
-# Prompt for sudo once up front rather than mid-run.
-if [ "$DRY_RUN" != "1" ]; then sudo -v; fi
+# Prompt for sudo once up front rather than mid-run. `sudo -v` asks for a
+# password even when a NOPASSWD rule exists, if any other matching rule lacks
+# NOPASSWD, which breaks non-interactive runs over ssh. Probing with -n first
+# prompts only when passwordless sudo is genuinely unavailable.
+if [ "$DRY_RUN" != "1" ]; then sudo -n true 2>/dev/null || sudo -v; fi
 
 # ---------------------------------------------------------------- 1. system ---
 if want apt; then
