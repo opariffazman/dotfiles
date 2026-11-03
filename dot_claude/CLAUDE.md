@@ -31,7 +31,7 @@ A project memory file and any text outside this block outrank these rules.
 
 ## Shell
 
-The Bash tool runs zsh, not bash. zsh differs in three ways:
+The Bash tool runs bash, set by `CLAUDE_CODE_SHELL` in `~/.claude/settings.json`. The login shell is zsh, so a remote `ssh` command runs zsh. zsh differs in three ways:
 - `$var` never word-splits. Use arrays, or run the loop under `bash -c '...'`.
 - An unmatched glob is a fatal error. Quote globs passed as arguments: `--include='*.js'`.
 - `ls` is aliased to `eza`. Use `command ls` for plain output.
@@ -49,3 +49,4 @@ Write any multi-line loop or script as a `#!/usr/bin/env bash` file.
 - Apply the same high standard to engineering excellence: lint, test failures, test flakiness. If you see an issue even not caused by your work, get it fixed along.
 - Never modify files that are auto-generated, like `CHANGELOG.md`, Godot `.uid` and `.import` sidecars, `.godot/`, and lock files. Regenerate them with their tool instead.
 - When chatting with a human, never use shortform references such as T1, S1, O4, or §10 on their own. Name the thing in words, for example "the item type decision" or "the board section of DESIGN.md". A shortform can follow the name in brackets.
+- When giving a Lavish board link to a person, pass it through `~/ai-ops/boards/board-url.sh --host boards-ariff.doubleadigital.my`. Lavish listens on loopback only, so the printed link opens on this machine alone. Leave the saved session URL unchanged.

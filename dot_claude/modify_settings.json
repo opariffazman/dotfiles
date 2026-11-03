@@ -24,6 +24,7 @@ set -euo pipefail
 
 shared='{
   "agentPushNotifEnabled": true,
+  "cleanupPeriodDays": 3650,
   "effortLevel": "high",
   "enableArtifact": false,
   "enabledPlugins": {
