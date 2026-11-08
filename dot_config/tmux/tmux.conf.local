@@ -519,3 +519,7 @@ setw -g aggressive-resize on
 # "$@"
 # # /!\ do not remove the previous line
 # #     do not write below this line
+
+# tmux-firstmate-hud: read-only sidebar of firstmate workers (https://github.com/officialdad/tmux-firstmate-hud)
+set -g @fmhud_key_toggle "M-h"
+run-shell ~/.config/tmux/plugins/tmux-firstmate-hud/tmux-firstmate-hud.tmux
