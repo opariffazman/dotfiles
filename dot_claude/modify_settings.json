@@ -47,7 +47,7 @@ shared='{
     "claude-fable-5-1": { "effortLevel": "high" },
     "claude-opus-5": { "effortLevel": "high" },
     "claude-opus-5-5": { "effortLevel": "medium" },
-    "claude-sonnet-5": { "effortLevel": "high" },
+    "claude-sonnet-5": { "effortLevel": "medium" },
     "claude-sonnet-5-5": { "effortLevel": "medium" }
   },
   "permissions": { "defaultMode": "auto" },
